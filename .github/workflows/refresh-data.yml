@@ -1,0 +1,54 @@
+name: Refresh ETF Data
+
+on:
+  schedule:
+    # 6 AM UTC, weekdays only (US markets closed on weekends)
+    - cron: "0 6 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pandas pyarrow
+
+      - name: Fetch and validate data
+        run: python scripts/refresh_data.py
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/etf_prices.parquet
+          git diff --cached --quiet && echo "No changes" || git commit -m "data: refresh etf_prices.parquet" && git push
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### ETF Data Refresh" >> $GITHUB_STEP_SUMMARY
+          if [ -f data/etf_prices.parquet ]; then
+            python -c "
+          import pandas as pd
+          df = pd.read_parquet('data/etf_prices.parquet')
+          n_tickers = df['ticker'].nunique()
+          n_rows = len(df)
+          last = df.groupby('ticker')['date'].max().min()
+          print(f'- **Tickers**: {n_tickers}')
+          print(f'- **Total rows**: {n_rows:,}')
+          print(f'- **Oldest latest date**: {last.date()}')
+          " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: No parquet file generated" >> $GITHUB_STEP_SUMMARY
+          fi

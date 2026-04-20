@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "returnstacking"
+version = "0.1.0"
+description = "Return Stacking Portfolio Monitor — interactive Streamlit dashboard"
+requires-python = ">=3.9"
+dependencies = [
+    "streamlit",
+    "pandas",
+    "plotly",
+    "numpy",
+    "pyarrow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
